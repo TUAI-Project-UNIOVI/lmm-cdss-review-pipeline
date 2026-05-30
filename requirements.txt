@@ -1,0 +1,12 @@
+metapub
+tqdm
+google-generativeai
+python-dotenv
+pandas
+openpyxl
+joblib
+requests
+rapidfuzz
+scikit-learn
+matplotlib
+seaborn

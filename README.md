@@ -1,65 +1,49 @@
 # TUAI Review Scrapers
 
-Automated pipeline for literature retrieval and screening for the **TUAI DC4** systematic review project. The review focuses on the use of **Large Language Models (LLMs) in Clinical Decision Support Systems (CDSS)**.
+Systematic review pipeline for **LLMs in Clinical Decision Support Systems (CDSS)** — TUAI DC4 project. Covers metadata retrieval from three databases, abstract and full-text screening, data extraction (charting), and PRISMA-ScR reporting.
 
-## Overview
-
-This project implements a multi-stage systematic review pipeline:
-
-1. **Search & Scrape** — Query PubMed and retrieve article metadata
-2. **Abstract Screening** — Use the Gemini AI API to automatically screen abstracts against inclusion/exclusion criteria
-3. **Full Paper Analysis** — Parse and consolidate full-paper analysis results (e.g., from NotebookLM)
-
-## Pipeline Stages
-
-### Stage 1 — PubMed Scraping (`main.py` + `scraper.py`)
-
-Queries PubMed via the NCBI API and saves article metadata to CSV, Excel, and pickle files.
-
-**Current search query targets:**
-- Papers mentioning LLMs (`large language*`, `LLM*`)
-- In the context of Clinical Decision Support Systems (`CDSS`, MeSH terms)
-- Published 2010–2025, in English, with free full text available
-
-**Output fields:** PMID, Title, Journal, Year, Authors, DOI, Keywords, Abstract, URL, BibTeX, Publication Type
-
-### Stage 2 — Abstract Screening (`screening.py`)
-
-Uses the **Google Gemini API** (`gemini-2.5-flash`) to automatically screen abstracts against predefined criteria and outputs structured JSON decisions.
-
-**Inclusion criteria (ALL must be met):**
-- Features an LLM as a core component
-- LLM directly supports a clinical decision (diagnosis, treatment, triage, etc.)
-- Systematic reviews and framework papers on these applications are included
-
-**Exclusion criteria (ANY triggers exclusion):**
-| Flag | Description |
-|---|---|
-| `is_genomic` | Primary focus on genomics/molecular biology |
-| `is_mental_health` | Primary focus on mental health/psychiatry |
-| `is_dentistry` | Primary focus on dentistry/oral health |
-| `is_pediatric` | Primary focus on pediatric patients |
-| `is_cadaver` | Involves cadaver studies |
-| `is_no_LLM` | No LLM as a core component |
-| `is_no_cds` | No direct clinical decision support |
-
-**Output per article:** `inclusion_status` (1=Include, 0=Exclude, 2=Unsure), `exclusion_reasons` flags, and `observations`.
-
-### Stage 3 — Full Paper Analysis (`full_paper_analysis.py`)
-
-Parses multi-entry JSON output files (e.g., from NotebookLM manual analysis) delimited by `---END---` and loads them into a DataFrame for further processing.
-
-## Project Structure
+## Pipeline
 
 ```
-TUAI_review_scrapers/
-├── config.py               # Search query, filenames, and CSV column definitions
-├── main.py                 # Entry point: runs PubMed scraping
-├── scraper.py              # PubMedScraper class (NCBI API logic)
-├── screening.py            # Abstract screening via Gemini API
-├── full_paper_analysis.py  # Full-paper analysis result parser
-├── data/                   # Raw input data (e.g., NotebookLM analysis text files)
-└── outputs/                # All generated output files
+run_metadata.py  →  run_screening.py  →  run_charting.py  →  run_reporting.py
+     ↓                    ↓                    ↓                    ↓
+ corpus.csv       screening_results.csv   charting_results.csv  prisma_counts.json
+                                                                 outputs/figures/
+```
+
+Each stage reads the previous stage's CSV output. Stages can be re-run independently without re-running upstream steps.
+
+## Quick Start
+
+```bash
+# 0. Install dependencies
+pip install -r requirements.txt
+
+# 1. Copy and fill in API keys
+cp .env.example .env
+
+# 2. Stage 1 — retrieve metadata from PubMed, IEEE Xplore, Web of Science
+python run_metadata.py
+
+# 3. Stage 2 — abstract screening (Phase 1) + full-paper reading aid (Phase 2)
+python run_screening.py
+
+# 4. Stage 3 — generate empty charting template for reviewers
+python run_charting.py --template
+# After reviewers complete the charting CSV:
+python run_charting.py --file outputs/charting_results_r1.csv
+# Compute IRR between two reviewers:
+python run_charting.py --irr --r1 outputs/charting_r1.csv --r2 outputs/charting_r2.csv
+
+# 5. Stage 4 — PRISMA-ScR counts + synthesis figures
+python run_reporting.py
+```
+
+For quick tests, limit results before a full run:
+
+```bash
+python run_metadata.py --max 10
+python run_metadata.py --pubmed-only --max 10
 ```
 
 ## Setup
@@ -67,50 +51,90 @@ TUAI_review_scrapers/
 ### Prerequisites
 
 ```bash
-pip install metapub tqdm google-generativeai python-dotenv pandas openpyxl joblib
+pip install -r requirements.txt
 ```
 
-### Environment Variables
+### Environment variables
 
-Create a `.env` file in the project root:
+Copy `.env.example` to `.env` and fill in your keys:
 
-```env
-NCBI_API_KEY=your_ncbi_api_key
-NCBI_EMAIL=your_email@example.com
-GEMINI_API_KEY=your_gemini_api_key
+| Key | Required for |
+|---|---|
+| `NCBI_API_KEY` | PubMed (raises rate limit 3 → 10 req/s) |
+| `NCBI_EMAIL` | PubMed |
+| `GEMINI_API_KEY` | Abstract + full-paper screening |
+| `IEEE_API_KEY` | IEEE Xplore API |
+| `WOS_API_KEY` | Web of Science API (optional — see WoS fallback below) |
+
+`.env` and `outputs/` are gitignored — never commit them.
+
+## Project Structure
+
+```
+TUAI_review_scrapers/
+├── config.py                   ← queries, model IDs, output filenames — only file to edit for new searches
+├── utils.py                    ← logging, ensure_output_dir, retry decorator
+│
+├── metadata/
+│   ├── pubmed.py               ← PubMedScraper (NCBI metapub)
+│   ├── ieee.py                 ← IEEEScraper (IEEE Xplore API)
+│   └── wos.py                  ← WoSScraper (API) + WoSExportLoader (manual TSV fallback)
+│
+├── dedup.py                    ← deduplicate_corpus() — DOI exact + fuzzy title dedup
+│
+├── screening/
+│   ├── abstract_screen.py      ← AbstractScreener — Gemini Phase 1 structured screening
+│   └── fullpaper_screen.py     ← FullPaperScreener — Phase 2 reading-aid summaries
+│
+├── charting/
+│   ├── charting.py             ← ChartingForm — three-dimension extraction template
+│   └── irr.py                  ← compute_irr() — Cohen's κ + percent agreement
+│
+├── reporting/
+│   ├── prisma.py               ← prisma_counts() → prisma_counts.json
+│   └── synthesis.py            ← generate_figures() — matplotlib/seaborn figures
+│
+├── run_metadata.py             ← Stage 1 entry point
+├── run_screening.py            ← Stage 2 entry point
+├── run_charting.py             ← Stage 3 entry point
+├── run_reporting.py            ← Stage 4 entry point
+│
+├── data/                       ← static input files
+├── outputs/                    ← all generated files (gitignored)
+├── drafts/                     ← legacy scripts and experimental code
+├── .env.example
+└── requirements.txt
 ```
 
-- **NCBI API key**: Register at [NCBI](https://www.ncbi.nlm.nih.gov/account/) (increases rate limit from 3 to 10 requests/second)
-- **Gemini API key**: Obtain from [Google AI Studio](https://aistudio.google.com/)
+## Inclusion / Exclusion Criteria
 
-<!-- Test comment: README last reviewed 2026-03-18 -->
+**Include** (all must hold): paper features an LLM/LMM as a core component that directly supports a clinical decision (diagnosis, treatment, triage, etc.). Systematic reviews and framework papers on these applications are included.
 
-## Usage
+**Exclude** (any one triggers exclusion):
 
-### 1. Configure the search
+| Flag | Description |
+|---|---|
+| `is_genomic` | Primary focus on genomics or molecular biology |
+| `is_mental_health` | Primary focus on mental health or psychiatry |
+| `is_dentistry` | Primary focus on dentistry or oral health |
+| `is_pediatric` | Primary focus on paediatric patients |
+| `is_cadaver` | Involves cadaver studies |
+| `is_no_LLM` | No LLM/LMM as a core component |
+| `is_no_cds` | No direct clinical decision support |
 
-Edit [config.py](config.py) to adjust the PubMed query, `MAX_RESULTS`, and output filenames.
+Criteria are operationalised in the system prompt inside `screening/abstract_screen.py` and must stay in sync with `@ptx` §2 (PCC).
 
-### 2. Run the scraper
+## WoS Fallback
+
+If the WoS API key is unavailable, export results manually from the Web of Science UI (Save to → Tab-delimited, UTF-8, Full Record) and pass the file path:
 
 ```bash
-python main.py
+python run_metadata.py --wos-export path/to/wos_export.txt
 ```
 
-Outputs: `outputs/pubmed_results.csv`, `outputs/pubmed_results.xlsx`, `outputs/pubmed_results.pkl`
+## Rules
 
-### 3. Run abstract screening
-
-```bash
-python screening.py
-```
-
-Outputs: `outputs/gemini_analysis_results.csv`, `outputs/gemini_analysis_results.xlsx`, `outputs/gemini_analysis_results.joblib`
-
-### 4. Parse full-paper analysis
-
-Place your NotebookLM (or similar) analysis results in `data/notebook_LM_analysis.txt`, separated by `---END---`, then run:
-
-```bash
-python full_paper_analysis.py
-```
+- No hardcoded paths or queries — `config.py` only.
+- Always test with `--max 10` before a full run.
+- After modifying screening criteria, update both the exclusion flags table above and the system prompt in `screening/abstract_screen.py`.
+- Every LLM use is logged in `outputs/screening_results.csv` (column: `screen_date`) for PRISMA-trAIce compliance (App F of the manuscript).
