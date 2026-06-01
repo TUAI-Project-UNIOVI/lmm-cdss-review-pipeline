@@ -1,6 +1,6 @@
 """Stage 1 — metadata retrieval.
 
-Runs all three database scrapers, merges results, deduplicates, and writes
+Runs all three database fetchers, merges results, deduplicates, and writes
 the corpus files that Stage 2 (screening) consumes.
 
 Usage:
@@ -8,7 +8,7 @@ Usage:
 
 Options:
     --max           Override MAX_RESULTS from config.py (default: config value).
-    --pubmed-only   Skip IEEE and WoS scrapers (useful for quick tests).
+    --pubmed-only   Skip IEEE and WoS fetchers (useful for quick tests).
     --wos-export    Path to a manually exported WoS TSV file (uses WoSExportLoader
                     instead of the API — set when WOS_API_KEY is unavailable).
 """
@@ -22,9 +22,9 @@ import pandas as pd
 
 import config
 from dedup import deduplicate_corpus
-from metadata.pubmed import PubMedScraper
-from metadata.ieee import IEEEScraper
-from metadata.wos import WoSScraper, WoSExportLoader
+from metadata.pubmed import PubMedFetcher
+from metadata.ieee import IEEEFetcher
+from metadata.wos import WoSFetcher, WoSExportLoader
 from utils import setup_logging, ensure_output_dir
 
 logger = logging.getLogger(__name__)
@@ -49,25 +49,25 @@ def main() -> None:
     ncbi_key = os.environ.get("NCBI_API_KEY", "")
     ncbi_email = os.environ.get("NCBI_EMAIL", "")
     try:
-        pubmed = PubMedScraper(email=ncbi_email, api_key=ncbi_key)
+        pubmed = PubMedFetcher(email=ncbi_email, api_key=ncbi_key)
         df_pm = pubmed.fetch(max_results=args.max_results)
         df_pm.to_csv(config.PUBMED_RAW_CSV, index=False)
         logger.info("PubMed raw saved to %s", config.PUBMED_RAW_CSV)
         frames.append(df_pm)
     except Exception as exc:
-        logger.error("PubMed scraper failed: %s", exc)
+        logger.error("PubMed fetcher failed: %s", exc)
 
     if not args.pubmed_only:
         # --- IEEE ---
         ieee_key = os.environ.get("IEEE_API_KEY", "")
         try:
-            ieee = IEEEScraper(api_key=ieee_key)
+            ieee = IEEEFetcher(api_key=ieee_key)
             df_ieee = ieee.fetch(max_results=args.max_results)
             df_ieee.to_csv(config.IEEE_RAW_CSV, index=False)
             logger.info("IEEE raw saved to %s", config.IEEE_RAW_CSV)
             frames.append(df_ieee)
         except Exception as exc:
-            logger.error("IEEE scraper failed: %s", exc)
+            logger.error("IEEE fetcher failed: %s", exc)
 
         # --- WoS ---
         if args.wos_export:
@@ -82,13 +82,13 @@ def main() -> None:
         else:
             wos_key = os.environ.get("WOS_API_KEY", "")
             try:
-                wos = WoSScraper(api_key=wos_key)
+                wos = WoSFetcher(api_key=wos_key)
                 df_wos = wos.fetch(max_results=args.max_results)
                 df_wos.to_csv(config.WOS_RAW_CSV, index=False)
                 logger.info("WoS raw saved to %s", config.WOS_RAW_CSV)
                 frames.append(df_wos)
             except Exception as exc:
-                logger.error("WoS scraper failed: %s", exc)
+                logger.error("WoS fetcher failed: %s", exc)
 
     if not frames:
         logger.error("No data collected from any source. Aborting.")

@@ -1,6 +1,6 @@
-# TUAI Review Scrapers
+# lmm-cdss-review-pipeline
 
-Systematic review pipeline for **LLMs in Clinical Decision Support Systems (CDSS)** — TUAI DC4 project. Covers metadata retrieval from three databases, abstract and full-text screening, data extraction (charting), and PRISMA-ScR reporting.
+Systematic review pipeline for **LMMs/LLMs in Clinical Decision Support Systems (CDSS)** — TUAI DC4 project. Covers metadata retrieval from three databases, abstract and full-text screening, data extraction (charting), and PRISMA-ScR reporting.
 
 ## Pipeline
 
@@ -71,14 +71,14 @@ Copy `.env.example` to `.env` and fill in your keys:
 ## Project Structure
 
 ```
-TUAI_review_scrapers/
+lmm-cdss-review-pipeline/
 ├── config.py                   ← queries, model IDs, output filenames — only file to edit for new searches
 ├── utils.py                    ← logging, ensure_output_dir, retry decorator
 │
 ├── metadata/
-│   ├── pubmed.py               ← PubMedScraper (NCBI metapub)
-│   ├── ieee.py                 ← IEEEScraper (IEEE Xplore API)
-│   └── wos.py                  ← WoSScraper (API) + WoSExportLoader (manual TSV fallback)
+│   ├── pubmed.py               ← PubMedFetcher (NCBI metapub)
+│   ├── ieee.py                 ← IEEEFetcher (IEEE Xplore API)
+│   └── wos.py                  ← WoSFetcher (API) + WoSExportLoader (manual TSV fallback)
 │
 ├── dedup.py                    ← deduplicate_corpus() — DOI exact + fuzzy title dedup
 │

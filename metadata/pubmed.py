@@ -14,7 +14,7 @@ from utils import retry
 logger = logging.getLogger(__name__)
 
 
-class PubMedScraper:
+class PubMedFetcher:
     """Fetch metadata for all PMIDs matching a query and return a corpus DataFrame."""
 
     def __init__(self, email: str, api_key: str) -> None:

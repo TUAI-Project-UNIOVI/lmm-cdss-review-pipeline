@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 _BASE_URL = "https://api.clarivate.com/apis/wos-starter/v1/documents"
 
 
-class WoSScraper:
+class WoSFetcher:
     """Fetch metadata from Web of Science Starter API."""
 
     def __init__(self, api_key: str) -> None:

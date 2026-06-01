@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 _BASE_URL = "https://ieeexploreapi.ieee.org/api/v1/search/articles"
 
 
-class IEEEScraper:
+class IEEEFetcher:
     """Fetch metadata from IEEE Xplore and return a corpus DataFrame."""
 
     def __init__(self, api_key: str) -> None:

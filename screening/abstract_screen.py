@@ -14,13 +14,11 @@ PRISMA-trAIce log row (for App F of @mtx):
 
 import json
 import logging
-import os
 import time
 from datetime import date
 
-import google.generativeai as genai
-from google.generativeai import types
-import joblib
+from google import genai
+from google.genai import types
 import pandas as pd
 from tqdm import tqdm
 
@@ -30,40 +28,40 @@ from utils import retry
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Response schema sent to the model
+# Response schema
 # ---------------------------------------------------------------------------
 
-_RESPONSE_SCHEMA = {
-    "type": "OBJECT",
-    "properties": {
-        "inclusion_status": {
-            "type": "INTEGER",
-            "description": "1 = Include, 0 = Exclude, 2 = Unsure (needs manual review).",
-        },
-        "exclusion_reasons": {
-            "type": "OBJECT",
-            "description": "Binary flags (0 or 1) for each exclusion criterion.",
-            "properties": {
-                "is_genomic":      {"type": "INTEGER"},
-                "is_mental_health":{"type": "INTEGER"},
-                "is_dentistry":    {"type": "INTEGER"},
-                "is_pediatric":    {"type": "INTEGER"},
-                "is_cadaver":      {"type": "INTEGER"},
-                "is_no_LLM":       {"type": "INTEGER"},
-                "is_no_cds":       {"type": "INTEGER"},
+_RESPONSE_SCHEMA = types.Schema(
+    type=types.Type.OBJECT,
+    properties={
+        "inclusion_status": types.Schema(
+            type=types.Type.INTEGER,
+            description="1 = Include, 0 = Exclude, 2 = Unsure (needs manual review).",
+        ),
+        "exclusion_reasons": types.Schema(
+            type=types.Type.OBJECT,
+            description="Binary flags (0 or 1) for each exclusion criterion.",
+            properties={
+                "is_genomic":       types.Schema(type=types.Type.INTEGER),
+                "is_mental_health": types.Schema(type=types.Type.INTEGER),
+                "is_dentistry":     types.Schema(type=types.Type.INTEGER),
+                "is_pediatric":     types.Schema(type=types.Type.INTEGER),
+                "is_cadaver":       types.Schema(type=types.Type.INTEGER),
+                "is_no_LLM":        types.Schema(type=types.Type.INTEGER),
+                "is_no_cds":        types.Schema(type=types.Type.INTEGER),
             },
-        },
-        "observations": {
-            "type": "STRING",
-            "description": (
+        ),
+        "observations": types.Schema(
+            type=types.Type.STRING,
+            description=(
                 "If 0: main exclusion reason(s). "
                 "If 2: source of ambiguity. "
                 "If 1: paper type (e.g. framework, RCT)."
             ),
-        },
+        ),
     },
-    "required": ["inclusion_status", "exclusion_reasons", "observations"],
-}
+    required=["inclusion_status", "exclusion_reasons", "observations"],
+)
 
 _SYSTEM_PROMPT = """
 You are an expert clinical research assistant performing a systematic scoping review.
@@ -101,22 +99,22 @@ class AbstractScreener:
     def __init__(self, api_key: str) -> None:
         if not api_key:
             raise ValueError("GEMINI_API_KEY is required but not set in .env")
-        genai.configure(api_key=api_key)
-        self._gen_config = types.GenerationConfig(
+        self._client = genai.Client(api_key=api_key)
+        self._gen_config = types.GenerateContentConfig(
+            system_instruction=_SYSTEM_PROMPT,
             response_mime_type="application/json",
             response_schema=_RESPONSE_SCHEMA,
-        )
-        self._model = genai.GenerativeModel(
-            model_name=config.GEMINI_MODEL,
-            system_instruction=_SYSTEM_PROMPT,
         )
         logger.info("AbstractScreener initialised (model=%s).", config.GEMINI_MODEL)
 
     @retry(max_attempts=3, wait=config.GEMINI_RATE_LIMIT_SLEEP)
     def _call_model(self, text: str) -> dict:
-        response = self._model.generate_content(text, generation_config=self._gen_config)
-        raw = response.candidates[0].content.parts[0].text
-        return json.loads(raw)
+        response = self._client.models.generate_content(
+            model=config.GEMINI_MODEL,
+            contents=text,
+            config=self._gen_config,
+        )
+        return json.loads(response.text)
 
     def screen(self, corpus: pd.DataFrame) -> pd.DataFrame:
         """Run screening on *corpus* and return an annotated DataFrame.
@@ -135,7 +133,7 @@ class AbstractScreener:
                 result_rows.append({
                     **row.to_dict(),
                     "inclusion_status": data.get("inclusion_status"),
-                    "observations": data.get("observations", ""),
+                    "observations":     data.get("observations", ""),
                     "is_genomic":       er.get("is_genomic", 0),
                     "is_mental_health": er.get("is_mental_health", 0),
                     "is_dentistry":     er.get("is_dentistry", 0),

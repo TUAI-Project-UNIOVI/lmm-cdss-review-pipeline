@@ -17,10 +17,9 @@ import json
 import logging
 import time
 from datetime import date
-from pathlib import Path
 
-import google.generativeai as genai
-from google.generativeai import types
+from google import genai
+from google.genai import types
 import pandas as pd
 from tqdm import tqdm
 
@@ -29,32 +28,32 @@ from utils import retry
 
 logger = logging.getLogger(__name__)
 
-_RESPONSE_SCHEMA = {
-    "type": "OBJECT",
-    "properties": {
-        "study_type": {
-            "type": "STRING",
-            "description": "e.g. RCT, cohort, framework paper, systematic review.",
-        },
-        "llm_role": {
-            "type": "STRING",
-            "description": "How the LLM/LMM is used in the system.",
-        },
-        "clinical_decision_type": {
-            "type": "STRING",
-            "description": "Type of clinical decision supported (diagnosis, triage, etc.).",
-        },
-        "population": {
-            "type": "STRING",
-            "description": "Patient population or clinical domain.",
-        },
-        "reviewer_notes": {
-            "type": "STRING",
-            "description": "Any flags or caveats the human reviewer should check.",
-        },
+_RESPONSE_SCHEMA = types.Schema(
+    type=types.Type.OBJECT,
+    properties={
+        "study_type": types.Schema(
+            type=types.Type.STRING,
+            description="e.g. RCT, cohort, framework paper, systematic review.",
+        ),
+        "llm_role": types.Schema(
+            type=types.Type.STRING,
+            description="How the LLM/LMM is used in the system.",
+        ),
+        "clinical_decision_type": types.Schema(
+            type=types.Type.STRING,
+            description="Type of clinical decision supported (diagnosis, triage, etc.).",
+        ),
+        "population": types.Schema(
+            type=types.Type.STRING,
+            description="Patient population or clinical domain.",
+        ),
+        "reviewer_notes": types.Schema(
+            type=types.Type.STRING,
+            description="Any flags or caveats the human reviewer should check.",
+        ),
     },
-    "required": ["study_type", "llm_role", "clinical_decision_type", "population", "reviewer_notes"],
-}
+    required=["study_type", "llm_role", "clinical_decision_type", "population", "reviewer_notes"],
+)
 
 _SYSTEM_PROMPT = """
 You are a reading-aid assistant for a systematic scoping review on LLMs in clinical
@@ -71,22 +70,22 @@ class FullPaperScreener:
     def __init__(self, api_key: str) -> None:
         if not api_key:
             raise ValueError("GEMINI_API_KEY is required but not set in .env")
-        genai.configure(api_key=api_key)
-        self._gen_config = types.GenerationConfig(
+        self._client = genai.Client(api_key=api_key)
+        self._gen_config = types.GenerateContentConfig(
+            system_instruction=_SYSTEM_PROMPT,
             response_mime_type="application/json",
             response_schema=_RESPONSE_SCHEMA,
-        )
-        self._model = genai.GenerativeModel(
-            model_name=config.GEMINI_MODEL,
-            system_instruction=_SYSTEM_PROMPT,
         )
         logger.info("FullPaperScreener initialised (model=%s).", config.GEMINI_MODEL)
 
     @retry(max_attempts=3, wait=config.GEMINI_RATE_LIMIT_SLEEP)
     def _call_model(self, text: str) -> dict:
-        response = self._model.generate_content(text, generation_config=self._gen_config)
-        raw = response.candidates[0].content.parts[0].text
-        return json.loads(raw)
+        response = self._client.models.generate_content(
+            model=config.GEMINI_MODEL,
+            contents=text,
+            config=self._gen_config,
+        )
+        return json.loads(response.text)
 
     def screen(self, screening_results: pd.DataFrame) -> pd.DataFrame:
         """Generate reading-aid summaries for Phase 1 inclusions.
@@ -105,14 +104,14 @@ class FullPaperScreener:
             try:
                 data = self._call_model(text)
                 rows.append({
-                    "uid": row.get("uid"),
-                    "title": row.get("title"),
-                    "study_type": data.get("study_type", ""),
-                    "llm_role": data.get("llm_role", ""),
-                    "clinical_decision_type": data.get("clinical_decision_type", ""),
-                    "population": data.get("population", ""),
-                    "reviewer_notes": data.get("reviewer_notes", ""),
-                    "screen_date": today,
+                    "uid":                   row.get("uid"),
+                    "title":                 row.get("title"),
+                    "study_type":            data.get("study_type", ""),
+                    "llm_role":              data.get("llm_role", ""),
+                    "clinical_decision_type":data.get("clinical_decision_type", ""),
+                    "population":            data.get("population", ""),
+                    "reviewer_notes":        data.get("reviewer_notes", ""),
+                    "screen_date":           today,
                 })
             except Exception as exc:
                 logger.warning("Full-paper screen failed for uid=%s: %s", row.get("uid"), exc)
