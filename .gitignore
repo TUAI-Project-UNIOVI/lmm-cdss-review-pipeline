@@ -5,3 +5,4 @@ __pycache__
 .desktop
 .ipynb_checkpoints
 outputs/
+drafts/scratch.py

@@ -6,9 +6,6 @@ import functools
 import time
 from typing import Callable, TypeVar
 
-from dotenv import load_dotenv
-
-load_dotenv()
 
 F = TypeVar("F", bound=Callable)
 

@@ -4,10 +4,84 @@ This is the only file to edit for queries, model settings, and output filenames.
 """
 
 # ---------------------------------------------------------------------------
+# Date range (single source of truth for all queries)
+# ---------------------------------------------------------------------------
+
+SEARCH_YEAR_START = 2024
+SEARCH_YEAR_END   = 2026
+
+# ---------------------------------------------------------------------------
 # Database queries (locked strings from @ptx §3.2.2)
 # ---------------------------------------------------------------------------
 
-PUBMED_QUERY = """
+PUBMED_QUERY = f"""
+((
+  "Decision Support Systems, Clinical"[MeSH Terms] OR
+  "clinical decision*"[Title/Abstract] 
+)
+AND
+(
+  "large language model*"[Title/Abstract] OR
+  "large language*"[Title/Abstract] OR
+  "LLM"[Title/Abstract] OR
+  "LLMs"[Title/Abstract] OR
+  "large multimodal model*"[Title/Abstract] OR
+  "LMM"[Title/Abstract] OR
+  "LMMs"[Title/Abstract]
+)
+AND
+(
+  "{SEARCH_YEAR_START}"[Date - Publication] : "{SEARCH_YEAR_END}"[Date - Publication]
+)
+AND
+(
+  English[Language]
+))
+"""
+
+PUBMED_QUERY_TITLE_ONLY = f"""
+((
+  "Decision Support Systems, Clinical"[MeSH Terms] OR
+  "clinical decision*"[Title]
+)
+AND
+(
+  "large language model*"[Title] OR
+  "large language*"[Title] OR
+  "LLM"[Title] OR
+  "LLMs"[Title] OR
+  "large multimodal model*"[Title] OR
+  "LMM"[Title] OR
+  "LMMs"[Title]
+)
+AND
+(
+  "{SEARCH_YEAR_START}"[Date - Publication] : "{SEARCH_YEAR_END}"[Date - Publication]
+)
+AND
+(
+  English[Language]
+))
+"""
+
+IEEE_QUERY = (
+    '("large language model" OR "large language models" OR "LLM" OR "LMMs" OR "large multimodal model") '
+    'AND ("clinical decision support" OR "CDSS")'
+)
+
+WOS_QUERY = (
+    f'TS=("large language model*" OR "LLM" OR "LMMs" OR "large multimodal model*" OR "LMM") '
+    f'AND TS=("clinical decision support" OR "CDSS") '
+    f'AND PY=({SEARCH_YEAR_START}-{SEARCH_YEAR_END})'
+)
+
+# ---------------------------------------------------------------------------
+# Website versions — paste these directly into each database's search box
+# for manual validation. Not used by the pipeline.
+# ---------------------------------------------------------------------------
+
+# PubMed — paste into https://pubmed.ncbi.nlm.nih.gov/
+PUBMED_QUERY_WEBSITE = f"""
 ((
   "Decision Support Systems, Clinical"[MeSH Terms] OR
   "clinical decision support system*"[Title/Abstract] OR
@@ -25,7 +99,7 @@ AND
 )
 AND
 (
-  "2023"[Date - Publication] : "2026"[Date - Publication]
+  "{SEARCH_YEAR_START}"[Date - Publication] : "{SEARCH_YEAR_END}"[Date - Publication]
 )
 AND
 (
@@ -33,22 +107,71 @@ AND
 ))
 """
 
-IEEE_QUERY = (
-    '("Abstract":"large language model" OR "Abstract":"large language models" OR '
-    '"Abstract":"LLM" OR "Abstract":"LMMs" OR "Abstract":"large multimodal model") AND '
-    '("Abstract":"clinical decision support" OR "Abstract":"CDSS")'
+# PubMed title-only variant — same as above but restricts CDSS term to [Title] only
+PUBMED_QUERY_TITLE_ONLY_WEBSITE = f"""
+((
+  "Decision Support Systems, Clinical"[MeSH Terms] OR
+  "clinical decision*"[Title]
 )
+AND
+(
+  "large language model*"[Title] OR
+  "large language*"[Title] OR
+  "LLM"[Title] OR
+  "LLMs"[Title] OR
+  "large multimodal model*"[Title] OR
+  "LMM"[Title] OR
+  "LMMs"[Title]
+)
+AND
+(
+  "{SEARCH_YEAR_START}"[Date - Publication] : "{SEARCH_YEAR_END}"[Date - Publication]
+)
+AND
+(
+  English[Language]
+))
+"""
 
-WOS_QUERY = (
-    'TS=("large language model*" OR "LLM" OR "LMMs" OR "large multimodal model*" OR "LMM") '
-    'AND TS=("clinical decision support" OR "CDSS")'
+# IEEE Xplore — paste into https://ieeexplore.ieee.org/search/searchresult.jsp
+# Use "Command Search" mode.
+# Date filter: apply via the "Publication Year" sidebar filter after running the query.
+IEEE_QUERY_WEBSITE = f"""
+("Document Title":"large language model" OR "Document Title":"large language models" OR "Document Title":"LLM"
+OR "Document Title":"LMMs" OR "Document Title":"large multimodal model")
+AND ("Document Title":"clinical decision" )
+"""
+
+# IEEE title + abstract variant
+IEEE_QUERY_TITLE_ABSTRACT_WEBSITE = f"""
+(
+  "Document Title":"large language model" OR "Document Title":"large language models" OR
+  "Document Title":"LLM" OR "Document Title":"LMMs" OR "Document Title":"large multimodal model" OR
+  "Abstract":"large language model" OR "Abstract":"large language models" OR
+  "Abstract":"LLM" OR "Abstract":"LMMs" OR "Abstract":"large multimodal model"
+)
+AND
+(
+  "Document Title":"clinical decision" OR
+  "Abstract":"clinical decision"
+)
+"""
+
+
+
+# Web of Science — paste into https://www.webofscience.com/wos/woscc/advanced-search
+# Use Advanced Search with TS= (Topic) field tags. Date filter via PY= operator.
+WOS_QUERY_WEBSITE = (
+    f'TS=("large language model*" OR "LLM" OR "LMMs" OR "large multimodal model*" OR "LMM") '
+    f'AND TS=("clinical decision") '
+    f'AND PY=({SEARCH_YEAR_START}-{SEARCH_YEAR_END})'
 )
 
 # ---------------------------------------------------------------------------
 # Search parameters
 # ---------------------------------------------------------------------------
 
-MAX_RESULTS = 1000
+MAX_RESULTS = 999
 
 # ---------------------------------------------------------------------------
 # Models

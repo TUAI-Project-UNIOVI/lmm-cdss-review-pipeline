@@ -106,6 +106,40 @@ lmm-cdss-review-pipeline/
 └── requirements.txt
 ```
 
+## Stage 1 Outputs (`run_metadata.py`)
+
+Running Stage 1 writes up to six files to `outputs/`. All are overwritten on each run — back up with `cp -r outputs outputs_backup` before a full run.
+
+### Per-source raw files
+
+| File | Produced when |
+|---|---|
+| `outputs/pubmed_raw.csv` | PubMed fetcher succeeds |
+| `outputs/ieee_raw.csv` | IEEE fetcher succeeds (skipped with `--pubmed-only`) |
+| `outputs/wos_raw.csv` | WoS API fetcher or `--wos-export` loader succeeds |
+
+Each raw file contains the records retrieved from that single database, in the canonical column schema (`source`, `uid`, `title`, `journal`, `year`, `authors`, `doi`, `keywords`, `abstract`, `url`, `bibtex`, `pub_type`, `is_duplicate`). They are useful for per-source audits and for re-running deduplication without re-fetching.
+
+### Merged corpus files (Stage 2 input)
+
+Three formats of the same data — choose whichever suits your tool:
+
+| File | Format | Use |
+|---|---|---|
+| `outputs/corpus.csv` | CSV | Default Stage 2 input; easy to open in Excel / pandas |
+| `outputs/corpus.xlsx` | Excel | Human review and manual annotation |
+| `outputs/corpus.pkl` | Joblib pickle | Fast reload in Python; preserves dtypes exactly |
+
+The corpus contains **all records from all sources**, including duplicates. The `is_duplicate` column flags records identified as duplicates by the two-pass deduplication strategy: (1) exact DOI match, then (2) fuzzy title match (≥ 92 similarity score, same year). Duplicate rows are retained for audit — filter with `corpus[~corpus.is_duplicate]` to get the unique set.
+
+Source priority when multiple records are kept: PubMed > IEEE > WoS (the first occurrence wins).
+
+### Side-effect file
+
+| File | Content |
+|---|---|
+| `outputs/failed_pmids.txt` | PMIDs for which the PubMed fetcher could not retrieve metadata (e.g. network errors, empty records). Empty if all fetches succeeded. |
+
 ## Inclusion / Exclusion Criteria
 
 **Include** (all must hold): paper features an LLM/LMM as a core component that directly supports a clinical decision (diagnosis, treatment, triage, etc.). Systematic reviews and framework papers on these applications are included.
@@ -138,3 +172,7 @@ python run_metadata.py --wos-export path/to/wos_export.txt
 - Always test with `--max 10` before a full run.
 - After modifying screening criteria, update both the exclusion flags table above and the system prompt in `screening/abstract_screen.py`.
 - Every LLM use is logged in `outputs/screening_results.csv` (column: `screen_date`) for PRISMA-trAIce compliance (App F of the manuscript).
+
+## Funding
+
+This project has received funding from the European Union under grant agreement No. 101168344 (HORIZON-MSCA-2023-DN-01, HORIZON TMA MSCA Doctoral Networks). Views and opinions expressed are those of the authors only and do not necessarily reflect those of the European Union or the European Research Executive Agency. Neither the European Union nor the granting authority can be held responsible for them.

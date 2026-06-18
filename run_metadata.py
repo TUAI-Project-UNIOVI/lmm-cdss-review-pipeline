@@ -16,6 +16,7 @@ Options:
 import argparse
 import logging
 import os
+import sys
 
 import joblib
 import pandas as pd
@@ -35,7 +36,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--max", type=int, default=config.MAX_RESULTS, dest="max_results")
     p.add_argument("--pubmed-only", action="store_true")
     p.add_argument("--wos-export", type=str, default=None, metavar="PATH")
-    return p.parse_args()
+    # parse_known_args ignores Jupyter kernel args that would crash parse_args()
+    args, _ = p.parse_known_args()
+    return args
 
 
 def main() -> None:
@@ -111,4 +114,9 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    # In Jupyter there are no meaningful CLI args, so default to --pubmed-only
+    if len(sys.argv) == 1 or not any(a.startswith("--") for a in sys.argv[1:]):
+        sys.argv = ["run_metadata.py", "--pubmed-only"]
     main()
+
+

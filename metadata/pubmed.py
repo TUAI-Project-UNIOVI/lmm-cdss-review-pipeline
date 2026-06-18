@@ -5,7 +5,7 @@ import logging
 from typing import Optional
 
 import pandas as pd
-from metapub import PubMedFetcher
+from metapub import PubMedFetcher as MetapubFetcher
 from tqdm import tqdm
 
 import config
@@ -23,7 +23,7 @@ class PubMedFetcher:
         if not email:
             raise ValueError("NCBI_EMAIL is required but not set in .env")
         logger.info("Initialising PubMedFetcher (email=%s)", email)
-        self.fetcher = PubMedFetcher(email=email)
+        self.fetcher = MetapubFetcher()
 
     @retry(max_attempts=3, wait=10.0)
     def _fetch_pmids(self, query: str, max_results: int) -> list[str]:
