@@ -1,49 +1,50 @@
 # lmm-cdss-review-pipeline
 
-Systematic review pipeline for **LMMs/LLMs in Clinical Decision Support Systems (CDSS)** — TUAI DC4 project. Covers metadata retrieval from three databases, abstract and full-text screening, data extraction (charting), and PRISMA-ScR reporting.
+Systematic review pipeline for **LMMs/LLMs in Clinical Decision Support Systems (CDSS)** — TUAI DC4 project. Covers metadata retrieval, preprocessing and pre-filtering, human screening, data extraction (charting), and PRISMA-ScR reporting.
 
-## Pipeline
+## Pipeline overview
 
 ```
 run_metadata.py  →  run_screening.py  →  run_charting.py  →  run_reporting.py
-     ↓                    ↓                    ↓                    ↓
- corpus.csv       screening_results.csv   charting_results.csv  prisma_counts.json
-                                                                 outputs/figures/
+       ↓                   ↓                    ↓                    ↓
+  metadata/           screening/           charting/            reporting/
+  fetch/ + preprocessing/   SCREENING_GUIDE.md   charting.py         prisma.py
+       ↓                                         irr.py              synthesis.py
+  outputs/metadata/
+  *_raw.csv + corpus.*
 ```
 
-Each stage reads the previous stage's CSV output. Stages can be re-run independently without re-running upstream steps.
+**Stage 1** (`run_metadata.py`) runs two substeps: fetch raw records per database, then preprocess (concat + dedup + automatic Gate 1–2 pre-filtering). **Stages 2–4** each read the previous stage's output and can be re-run independently.
 
-## Quick Start
+## Quick start
 
 ```bash
 # 0. Install dependencies
 pip install -r requirements.txt
 
-# 1. Copy and fill in API keys
-cp .env.example .env
-
-# 2. Stage 1 — retrieve metadata from PubMed, IEEE Xplore, Web of Science
+# 1. Stage 1 — fetch all sources then build pre-filtered corpus
 python run_metadata.py
 
-# 3. Stage 2 — abstract screening (Phase 1) + full-paper reading aid (Phase 2)
+# Run substeps independently if needed:
+python run_metadata.py --fetch-only --sources pubmed   # fetch PubMed only
+python run_metadata.py --fetch-only --sources ieee wos # fetch IEEE + WoS only
+python run_metadata.py --corpus-only                   # build corpus from existing raws
+
+# 2. Stage 2 — human screening (see screening/SCREENING_GUIDE.md)
 python run_screening.py
 
-# 4. Stage 3 — generate empty charting template for reviewers
+# 3. Stage 3 — charting template and IRR
 python run_charting.py --template
-# After reviewers complete the charting CSV:
-python run_charting.py --file outputs/charting_results_r1.csv
-# Compute IRR between two reviewers:
 python run_charting.py --irr --r1 outputs/charting_r1.csv --r2 outputs/charting_r2.csv
 
-# 5. Stage 4 — PRISMA-ScR counts + synthesis figures
+# 4. Stage 4 — PRISMA-ScR counts + synthesis figures
 python run_reporting.py
 ```
 
-For quick tests, limit results before a full run:
+Limit PubMed results for quick tests:
 
 ```bash
-python run_metadata.py --max 10
-python run_metadata.py --pubmed-only --max 10
+python run_metadata.py --fetch-only --sources pubmed --max 10
 ```
 
 ## Setup
@@ -56,123 +57,106 @@ pip install -r requirements.txt
 
 ### Environment variables
 
-Copy `.env.example` to `.env` and fill in your keys:
+Set as persistent variables in `~/.bashrc` or `~/.profile`. IEEE and WoS use website exports — no API keys required for those.
 
 | Key | Required for |
 |---|---|
 | `NCBI_API_KEY` | PubMed (raises rate limit 3 → 10 req/s) |
 | `NCBI_EMAIL` | PubMed |
-| `GEMINI_API_KEY` | Abstract + full-paper screening |
-| `IEEE_API_KEY` | IEEE Xplore API |
-| `WOS_API_KEY` | Web of Science API (optional — see WoS fallback below) |
+| `GEMINI_API_KEY` | Reserved for future screening assistance |
 
-`.env` and `outputs/` are gitignored — never commit them.
+### Database exports (IEEE + WoS)
 
-## Project Structure
+IEEE and WoS are loaded from files exported manually from each database's website. Place exports in the `data/` subfolders and update paths in `config.py` if filenames change.
+
+| Database | Export format | Folder |
+|---|---|---|
+| IEEE Xplore | CSV (metadata) + BIB (references) | `data/ieee/` |
+| Web of Science | RIS (Full Record, includes abstracts) | `data/wos/` |
+
+**IEEE:** Website Command Search → export → CSV + BibTeX. Set `IEEE_EXPORT_CSV` and `IEEE_EXPORT_BIB` in `config.py`.
+
+**WoS:** Website Advanced Search → Export → "Other Reference Software" → RIS → Full Record. Set `WOS_EXPORT_RIS` in `config.py`.
+
+## Project structure
 
 ```
 lmm-cdss-review-pipeline/
-├── config.py                   ← queries, model IDs, output filenames — only file to edit for new searches
-├── utils.py                    ← logging, ensure_output_dir, retry decorator
+├── config.py                        ← queries, model IDs, all file paths
+├── utils.py                         ← logging, ensure_output_dir, retry decorator
 │
-├── metadata/
-│   ├── pubmed.py               ← PubMedFetcher (NCBI metapub)
-│   ├── ieee.py                 ← IEEEFetcher (IEEE Xplore API)
-│   └── wos.py                  ← WoSFetcher (API) + WoSExportLoader (manual TSV fallback)
+├── metadata/                        ← Stage 1 package
+│   ├── fetch/                       ← Substep 1: raw retrieval per database
+│   │   ├── pubmed.py                    PubMedFetcher (NCBI metapub API)
+│   │   ├── ieee.py                      IEEEExportLoader (CSV + BIB)
+│   │   └── wos.py                       WoSExportLoader (RIS via rispy)
+│   └── preprocessing/               ← Substep 2: concat, dedup, Gate 1–2 pre-filter
+│       ├── dedup.py                     deduplicate_corpus() — DOI exact + fuzzy title
+│       └── prefilter.py                 *(pending)* Gate 1–2 automatic exclusions
 │
-├── dedup.py                    ← deduplicate_corpus() — DOI exact + fuzzy title dedup
+├── screening/                       ← Stage 2: human reviewer resources
+│   └── SCREENING_GUIDE.md               Gates 3–7 checklist for reviewers
 │
-├── screening/
-│   ├── abstract_screen.py      ← AbstractScreener — Gemini Phase 1 structured screening
-│   └── fullpaper_screen.py     ← FullPaperScreener — Phase 2 reading-aid summaries
+├── charting/                        ← Stage 3
+│   ├── charting.py                      ChartingForm — three-dimension extraction
+│   └── irr.py                           compute_irr() — Cohen's κ + percent agreement
 │
-├── charting/
-│   ├── charting.py             ← ChartingForm — three-dimension extraction template
-│   └── irr.py                  ← compute_irr() — Cohen's κ + percent agreement
+├── reporting/                       ← Stage 4
+│   ├── prisma.py                        prisma_counts() → prisma_counts.json
+│   └── synthesis.py                     generate_figures() — matplotlib/seaborn
 │
-├── reporting/
-│   ├── prisma.py               ← prisma_counts() → prisma_counts.json
-│   └── synthesis.py            ← generate_figures() — matplotlib/seaborn figures
+├── run_metadata.py                  ← Stage 1 orchestrator (fetch + preprocessing)
+├── run_screening.py                 ← Stage 2 entry point
+├── run_charting.py                  ← Stage 3 entry point
+├── run_reporting.py                 ← Stage 4 entry point
 │
-├── run_metadata.py             ← Stage 1 entry point
-├── run_screening.py            ← Stage 2 entry point
-├── run_charting.py             ← Stage 3 entry point
-├── run_reporting.py            ← Stage 4 entry point
+├── data/
+│   ├── ieee/                        ← IEEE website exports
+│   └── wos/                         ← WoS website export
 │
-├── data/                       ← static input files
-├── outputs/                    ← all generated files (gitignored)
-├── drafts/                     ← legacy scripts and experimental code
-├── .env.example
-└── requirements.txt
+├── outputs/                         ← generated files (gitignored)
+│   └── metadata/                        Stage 1 outputs
+│
+├── review_execution_log.md          ← transparent record of all execution details
+│                                        and AI-use log (PRISMA-trAIce source)
+└── drafts/                          ← experimental scripts (not part of pipeline)
 ```
 
-## Stage 1 Outputs (`run_metadata.py`)
+## Stage 1 outputs
 
-Running Stage 1 writes up to six files to `outputs/`. All are overwritten on each run — back up with `cp -r outputs outputs_backup` before a full run.
+All Stage 1 files are written to `outputs/metadata/`. Raw files are overwritten on each fetch run — back up with `cp -r outputs/metadata outputs/metadata_backup` before a full re-fetch.
 
-### Per-source raw files
-
-| File | Produced when |
+| File | Produced by |
 |---|---|
-| `outputs/pubmed_raw.csv` | PubMed fetcher succeeds |
-| `outputs/ieee_raw.csv` | IEEE fetcher succeeds (skipped with `--pubmed-only`) |
-| `outputs/wos_raw.csv` | WoS API fetcher or `--wos-export` loader succeeds |
+| `outputs/metadata/pubmed_raw.csv` | fetch — PubMed |
+| `outputs/metadata/pubmed_clean.bib` | fetch — PubMed |
+| `outputs/metadata/ieee_raw.csv` | fetch — IEEE |
+| `outputs/metadata/ieee_clean.bib` | fetch — IEEE |
+| `outputs/metadata/wos_raw.csv` | fetch — WoS |
+| `outputs/metadata/wos_clean.bib` | fetch — WoS |
+| `outputs/metadata/corpus.csv` | preprocessing — corpus builder |
+| `outputs/metadata/corpus.xlsx` | preprocessing — corpus builder |
+| `outputs/metadata/corpus.pkl` | preprocessing — corpus builder |
 
-Each raw file contains the records retrieved from that single database, in the canonical column schema (`source`, `uid`, `title`, `journal`, `year`, `authors`, `doi`, `keywords`, `abstract`, `url`, `bibtex`, `pub_type`, `is_duplicate`). They are useful for per-source audits and for re-running deduplication without re-fetching.
+The corpus includes all records with an `is_duplicate` flag. Filter unique records with `corpus[~corpus.is_duplicate]`.
 
-### Merged corpus files (Stage 2 input)
+## Inclusion / Exclusion criteria
 
-Three formats of the same data — choose whichever suits your tool:
+Gates are split into two tiers:
 
-| File | Format | Use |
+| Tier | Gates | Applied by |
 |---|---|---|
-| `outputs/corpus.csv` | CSV | Default Stage 2 input; easy to open in Excel / pandas |
-| `outputs/corpus.xlsx` | Excel | Human review and manual annotation |
-| `outputs/corpus.pkl` | Joblib pickle | Fast reload in Python; preserves dtypes exactly |
+| Automatic pre-filter | G1 (language/date), G2 (source type) | `metadata/preprocessing/prefilter.py` |
+| Human screening | G3 (population), G4 (LLM core), G5 (CDSS function), G6 (context), G7 (technical sufficiency) | Reviewers — see `screening/SCREENING_GUIDE.md` |
 
-The corpus contains **all records from all sources**, including duplicates. The `is_duplicate` column flags records identified as duplicates by the two-pass deduplication strategy: (1) exact DOI match, then (2) fuzzy title match (≥ 92 similarity score, same year). Duplicate rows are retained for audit — filter with `corpus[~corpus.is_duplicate]` to get the unique set.
-
-Source priority when multiple records are kept: PubMed > IEEE > WoS (the first occurrence wins).
-
-### Side-effect file
-
-| File | Content |
-|---|---|
-| `outputs/failed_pmids.txt` | PMIDs for which the PubMed fetcher could not retrieve metadata (e.g. network errors, empty records). Empty if all fetches succeeded. |
-
-## Inclusion / Exclusion Criteria
-
-**Include** (all must hold): paper features an LLM/LMM as a core component that directly supports a clinical decision (diagnosis, treatment, triage, etc.). Systematic reviews and framework papers on these applications are included.
-
-**Exclude** (any one triggers exclusion):
-
-| Flag | Description |
-|---|---|
-| `is_genomic` | Primary focus on genomics or molecular biology |
-| `is_mental_health` | Primary focus on mental health or psychiatry |
-| `is_dentistry` | Primary focus on dentistry or oral health |
-| `is_pediatric` | Primary focus on paediatric patients |
-| `is_cadaver` | Involves cadaver studies |
-| `is_no_LLM` | No LLM/LMM as a core component |
-| `is_no_cds` | No direct clinical decision support |
-
-Criteria are operationalised in the system prompt inside `screening/abstract_screen.py` and must stay in sync with `@ptx` §2 (PCC).
-
-## WoS Fallback
-
-If the WoS API key is unavailable, export results manually from the Web of Science UI (Save to → Tab-delimited, UTF-8, Full Record) and pass the file path:
-
-```bash
-python run_metadata.py --wos-export path/to/wos_export.txt
-```
+Full execution details, exclusion counts, and deviations from protocol are recorded in `review_execution_log.md`.
 
 ## Rules
 
-- No hardcoded paths or queries — `config.py` only.
-- Always test with `--max 10` before a full run.
-- After modifying screening criteria, update both the exclusion flags table above and the system prompt in `screening/abstract_screen.py`.
-- Every LLM use is logged in `outputs/screening_results.csv` (column: `screen_date`) for PRISMA-trAIce compliance (App F of the manuscript).
+- `config.py` is the only file to edit for queries, paths, and model settings.
+- Always test PubMed with `--max 10` before a full run.
+- Every AI-assisted step is logged in `review_execution_log.md` for PRISMA-trAIce compliance.
 
 ## Funding
 
-This project has received funding from the European Union under grant agreement No. 101168344 (HORIZON-MSCA-2023-DN-01, HORIZON TMA MSCA Doctoral Networks). Views and opinions expressed are those of the authors only and do not necessarily reflect those of the European Union or the European Research Executive Agency. Neither the European Union nor the granting authority can be held responsible for them.
+This project has received funding from the European Union under grant agreement No. 101168344 (HORIZON-MSCA-2023-DN-01). Views and opinions expressed are those of the authors only and do not necessarily reflect those of the European Union or the European Research Executive Agency.

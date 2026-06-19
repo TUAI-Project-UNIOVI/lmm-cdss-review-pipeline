@@ -6,6 +6,7 @@ pandas
 openpyxl
 joblib
 requests
+rispy
 rapidfuzz
 scikit-learn
 matplotlib

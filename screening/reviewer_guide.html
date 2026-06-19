@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reviewer Guide</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 15px; line-height: 1.6; color: #1f2328;
+    max-width: 860px; margin: 48px auto; padding: 0 32px;
+    background: #ffffff;
+  }
+  h1 {
+    font-size: 1.9em; font-weight: 700;
+    border-bottom: 1px solid #d0d7de; padding-bottom: .3em; margin: 0 0 20px;
+  }
+  h2 {
+    font-size: 1.35em; font-weight: 600;
+    border-bottom: 1px solid #d0d7de; padding-bottom: .3em; margin: 32px 0 12px;
+  }
+  p { margin: 0 0 12px; }
+  ol { margin: 8px 0 16px; padding-left: 1.8em; }
+  ol li { margin: 6px 0; }
+  table {
+    border-collapse: collapse; width: 100%; margin: 16px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid #d0d7de; padding: 8px 14px;
+    text-align: left; vertical-align: top;
+  }
+  th { background: #f6f8fa; font-weight: 600; }
+  tr:nth-child(even) td { background: #f6f8fa; }
+  code {
+    background: #eef1f4; padding: 2px 6px; border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    font-size: 13px; color: #1f2328;
+  }
+  hr { border: none; border-top: 1px solid #d0d7de; margin: 28px 0; }
+  strong { font-weight: 600; }
+</style>
+</head>
+<body>
+<h1>Reviewer Guide — Phase 1 Screening</h1>
+<p>You will receive a spreadsheet with one row per paper. For each paper, read the title and abstract, then fill the check columns and the decision column.</p>
+<ol>
+<li>Read title and abstract.</li>
+<li>Go through each check column in order. Mark <code>Yes</code> if the exclusion applies, <code>No</code> if it does not. As soon as one column is <code>Yes</code>, you can stop.</li>
+<li>If any column is <code>Yes</code>, set <code>decision</code> to <code>EXCLUDE</code> and explain the reason in <code>rationale</code>. Quote the specific text if it helps.</li>
+<li>If all columns are <code>No</code>, set <code>decision</code> to <code>INCLUDE</code>. Rationale is optional for inclusions.</li>
+<li>If in doubt at any check, mark <code>No</code> and set <code>decision</code> to <code>INCLUDE</code>. Write the reason for the doubt in <code>rationale</code> as a support note.</li>
+<li>If there is no abstract, set <code>decision</code> to <code>INCLUDE</code> and leave checks blank.</li>
+</ol>
+<hr />
+<h2>Column reference</h2>
+<table>
+<thead>
+<tr>
+<th>Column name in spreadsheet</th>
+<th>Code</th>
+<th>What to check — mark Yes to exclude</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PO1_population_clinician</code></td>
+<td>PO1</td>
+<td>System is NOT used by licensed clinicians (physicians, nurses, residents). Exclude if patient-facing, for students, or admin-only.</td>
+</tr>
+<tr>
+<td><code>CO2_concept_llm_presence</code></td>
+<td>CO2</td>
+<td>Study does NOT use an LLM or LMM in any role (core or orchestrator). Exclude if the system is traditional ML, rule-based, or BERT-only with no generative model.</td>
+</tr>
+<tr>
+<td><code>CO3_concept_cdss_function</code></td>
+<td>CO3</td>
+<td>System does NOT produce patient-specific clinical recommendations (diagnosis, treatment, triage, prognosis). Exclude if purely administrative or educational.</td>
+</tr>
+<tr>
+<td><code>CX4_context_clinical_data</code></td>
+<td>CX4</td>
+<td>Study uses NO clinical data of any kind — no patient records, clinical notes, medical imaging, synthetic clinical data, or medical benchmarks.</td>
+</tr>
+<tr>
+<td><code>OT5_other</code></td>
+<td>OT5</td>
+<td>Any other exclusion reason not covered above. Describe in <code>rationale</code>.</td>
+</tr>
+<tr>
+<td><code>decision</code></td>
+<td>—</td>
+<td><code>INCLUDE</code> or <code>EXCLUDE</code>. You must choose one.</td>
+</tr>
+<tr>
+<td><code>rationale</code></td>
+<td>—</td>
+<td>Brief explanation of the decision. Required for exclusions and doubts.</td>
+</tr>
+</tbody>
+</table>
+</body>
+</html>

@@ -1,8 +1,7 @@
 """PubMed metadata retrieval via NCBI metapub API."""
 
-import csv
 import logging
-from typing import Optional
+from pathlib import Path
 
 import pandas as pd
 from metapub import PubMedFetcher as MetapubFetcher
@@ -41,19 +40,21 @@ class PubMedFetcher:
     def _parse_article(self, article) -> dict:
         author_str = "; ".join(str(a) for a in article.authors)
         return {
-            "source": "pubmed",
-            "uid": article.pmid,
-            "title": article.title or "",
-            "journal": article.journal or "",
-            "year": article.year or "",
-            "authors": author_str,
-            "doi": article.doi or "",
-            "keywords": article.keywords or "",
-            "abstract": article.abstract or "",
-            "url": article.url or "",
-            "bibtex": article.citation_bibtex or "",
-            "pub_type": str(article.publication_types or ""),
+            "corpus_id":    "",
+            "duplicate_of": "",
             "is_duplicate": False,
+            "source":       "pubmed",
+            "uid":          article.pmid,
+            "title":        article.title or "",
+            "journal":      article.journal or "",
+            "year":         article.year or "",
+            "authors":      author_str,
+            "doi":          article.doi or "",
+            "keywords":     article.keywords or "",
+            "abstract":     article.abstract or "",
+            "url":          article.url or "",
+            "bibtex":       article.citation_bibtex or "",
+            "pub_type":     str(article.publication_types or ""),
         }
 
     def fetch(
@@ -87,3 +88,16 @@ class PubMedFetcher:
 
         logger.info("PubMed: %d records fetched, %d failed.", len(rows), len(failed))
         return pd.DataFrame(rows, columns=config.CORPUS_COLUMNS)
+
+    @staticmethod
+    def write_clean_bib(df: pd.DataFrame, out_path: str) -> None:
+        """Write all non-empty bibtex entries from *df* to *out_path*."""
+        out = Path(out_path)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        entries = df["bibtex"].dropna()
+        entries = entries[entries != ""]
+        with out.open("w", encoding="utf-8") as fh:
+            for entry in entries:
+                fh.write(entry.strip())
+                fh.write("\n\n")
+        logger.info("Wrote clean BIB with %d entries to %s", len(entries), out_path)
