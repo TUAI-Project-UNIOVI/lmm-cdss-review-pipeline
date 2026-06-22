@@ -185,8 +185,9 @@ def _write_screening_files(corpus: pd.DataFrame) -> None:
     header_fill = PatternFill("solid", fgColor="D9E1F2")
 
     for reviewer in ["R1", "R2"]:
-        csv_path  = Path(f"outputs/screening/screening_phase1_{reviewer}.csv")
-        xlsx_path = Path(f"outputs/screening/screening_phase1_{reviewer}.xlsx")
+        csv_path  = Path(f"screening/screening_phase1_{reviewer}.csv")
+        xlsx_path = Path(f"screening/screening_phase1_{reviewer}.xlsx")
+
 
         unique.to_csv(csv_path, index=False)
 
