@@ -34,6 +34,7 @@ from metadata.fetch.pubmed import PubMedFetcher
 from metadata.fetch.ieee import IEEEExportLoader
 from metadata.fetch.wos import WoSExportLoader
 from metadata.preprocessing.dedup import deduplicate_corpus, build_duplicate_map
+from metadata.preprocessing.prefilter import apply_prefilter, prefilter_summary
 from utils import setup_logging, ensure_output_dir
 
 logger = logging.getLogger(__name__)
@@ -140,6 +141,13 @@ def run_corpus() -> None:
 
     corpus = deduplicate_corpus(combined)
 
+    # Stage 1b — automatic pre-filter (SE1–SE4)
+    logger.info("=== Substep 2b: pre-filter (SE1–SE4) ===")
+    corpus = apply_prefilter(corpus, retraction_csv=config.RETRACTION_WATCH_CSV)
+    summary = prefilter_summary(corpus)
+    for code, n in summary.items():
+        logger.info("Pre-filter %s: %d", code, n)
+
     # Enforce canonical column order from config
     corpus = corpus[config.CORPUS_COLUMNS]
 
@@ -166,7 +174,11 @@ def _write_screening_files(corpus: pd.DataFrame) -> None:
     """Write per-reviewer screening files (CSV + XLSX) to outputs/screening/."""
     ensure_output_dir("outputs/screening")
 
-    unique = corpus[~corpus["is_duplicate"]][["corpus_id", "title", "abstract"]].copy().reset_index(drop=True)
+    se_cols = [c for c in config.PREFILTER_COLS if c in corpus.columns]
+    se_excluded = corpus[se_cols].any(axis=1) if se_cols else pd.Series(False, index=corpus.index)
+    unique = corpus[
+        ~corpus["is_duplicate"].astype(bool) & ~se_excluded
+    ][["corpus_id", "title", "abstract"]].copy().reset_index(drop=True)
     unique["phase"] = "1"
     unique["PO1_population_clinician"] = ""
     unique["CO2_concept_llm_presence"] = ""

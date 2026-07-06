@@ -11,10 +11,10 @@ run_metadata.py  →  run_screening.py  →  run_charting.py  →  run_reporting
   fetch/ + preprocessing/   SCREENING_GUIDE.md   charting.py         prisma.py
        ↓                                         irr.py              synthesis.py
   outputs/metadata/
-  *_raw.csv + corpus.*
+  *_raw.csv + corpus.* + duplicate_map.csv
 ```
 
-**Stage 1** (`run_metadata.py`) runs two substeps: fetch raw records per database, then preprocess (concat + dedup + automatic Gate 1–2 pre-filtering). **Stages 2–4** each read the previous stage's output and can be re-run independently.
+**Stage 1** (`run_metadata.py`) runs two substeps: fetch raw records per database (`--fetch-only`), then preprocess — concat, dedup, and generate corpus + duplicate map (`--corpus-only`). Run both in sequence or use the default (no flags) to do both in one call. **Stages 2–4** each read the previous stage's output and can be re-run independently.
 
 ## Quick start
 
@@ -22,7 +22,7 @@ run_metadata.py  →  run_screening.py  →  run_charting.py  →  run_reporting
 # 0. Install dependencies
 pip install -r requirements.txt
 
-# 1. Stage 1 — fetch all sources then build pre-filtered corpus
+# 1. Stage 1 — fetch all sources then build corpus
 python run_metadata.py
 
 # Run substeps independently if needed:
@@ -90,9 +90,9 @@ lmm-cdss-review-pipeline/
 │   │   ├── pubmed.py                    PubMedFetcher (NCBI metapub API)
 │   │   ├── ieee.py                      IEEEExportLoader (CSV + BIB)
 │   │   └── wos.py                       WoSExportLoader (RIS via rispy)
-│   └── preprocessing/               ← Substep 2: concat, dedup, Gate 1–2 pre-filter
+│   └── preprocessing/               ← Substep 2: concat, dedup, pre-filter
 │       ├── dedup.py                     deduplicate_corpus() — DOI exact + fuzzy title
-│       └── prefilter.py                 *(pending)* Gate 1–2 automatic exclusions
+│       └── prefilter.py                 *(pending)* SE1–SE4 automatic exclusions
 │
 ├── screening/                       ← Stage 2: human reviewer resources
 │   └── SCREENING_GUIDE.md               Gates 3–7 checklist for reviewers
@@ -105,7 +105,7 @@ lmm-cdss-review-pipeline/
 │   ├── prisma.py                        prisma_counts() → prisma_counts.json
 │   └── synthesis.py                     generate_figures() — matplotlib/seaborn
 │
-├── run_metadata.py                  ← Stage 1 orchestrator (fetch + preprocessing)
+├── run_metadata.py                  ← Stage 1 orchestrator (--fetch-only / --corpus-only / both)
 ├── run_screening.py                 ← Stage 2 entry point
 ├── run_charting.py                  ← Stage 3 entry point
 ├── run_reporting.py                 ← Stage 4 entry point
@@ -137,17 +137,18 @@ All Stage 1 files are written to `outputs/metadata/`. Raw files are overwritten 
 | `outputs/metadata/corpus.csv` | preprocessing — corpus builder |
 | `outputs/metadata/corpus.xlsx` | preprocessing — corpus builder |
 | `outputs/metadata/corpus.pkl` | preprocessing — corpus builder |
+| `outputs/metadata/duplicate_map.csv` | preprocessing — one row per canonical record listing its duplicate corpus_ids |
 
-The corpus includes all records with an `is_duplicate` flag. Filter unique records with `corpus[~corpus.is_duplicate]`.
+The corpus includes all records. Every record has a `corpus_id` (sequential 1–N) and an `is_duplicate` flag. Duplicate records also have a `duplicate_of` field pointing to the canonical `corpus_id`. Filter unique records with `corpus[~corpus.is_duplicate]`.
 
 ## Inclusion / Exclusion criteria
 
 Gates are split into two tiers:
 
-| Tier | Gates | Applied by |
+| Tier | Codes | Applied by |
 |---|---|---|
-| Automatic pre-filter | G1 (language/date), G2 (source type) | `metadata/preprocessing/prefilter.py` |
-| Human screening | G3 (population), G4 (LLM core), G5 (CDSS function), G6 (context), G7 (technical sufficiency) | Reviewers — see `screening/SCREENING_GUIDE.md` |
+| Automatic pre-filter | SE1 (language), SE2 (date), SE3 (source type), SE4 (retraction) | `metadata/preprocessing/prefilter.py` *(pending)* |
+| Human screening | PO1 (population), CO2 (concept — LLM core), CO3 (concept — CDSS function), CX4 (context), OT5 (other) | Reviewers — see `screening/SCREENING_GUIDE.md` |
 
 Full execution details, exclusion counts, and deviations from protocol are recorded in `review_execution_log.md`.
 

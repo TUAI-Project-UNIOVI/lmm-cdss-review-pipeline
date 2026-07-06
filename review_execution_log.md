@@ -136,7 +136,7 @@ Pipeline version: `lmm-cdss-review-pipeline` — see commit history for exact co
 
 Automated exclusions applied to the deduplicated corpus before records are forwarded to human reviewers. Codes SE1–SE3 correspond to the Sources & Evidence dimension of the PCC framework (§2.4.4 of the protocol) and require no reviewer judgment — they operate entirely on corpus metadata fields.
 
-Implemented in `metadata/preprocessing/prefilter.py` (pending). Exclusions are logged with the codes below.
+Implemented in `metadata/preprocessing/prefilter.py`. Applied via `run_metadata.py --corpus-only` on 2026-06-25. Exclusions logged with the codes below.
 
 ### SE1 — Language not English
 
@@ -170,17 +170,19 @@ Implemented in `metadata/preprocessing/prefilter.py` (pending). Exclusions are l
 
 **Method:** Cross-reference all corpus DOIs against the Retraction Watch database CSV (freely available at retractionwatch.com). A DOI match flags the record as `SE4`. To be implemented in `metadata/preprocessing/prefilter.py` alongside SE1–SE3.
 
-**Status:** Pending — not yet applied to the current corpus.
+**Method:** Cross-reference corpus DOIs against `data/retraction_watch.csv` (61,632 retracted DOIs as of download date). DOI match (case-insensitive) flags the record as `SE4_retracted = True`.
+
+**Status:** Applied 2026-06-25 — 0 matches in current corpus.
 
 ### Pre-filter results
 
 | Code | Records excluded | Notes |
 |---|---|---|
-| SE1 — Language | — | *(to be filled after prefilter.py runs)* |
-| SE2 — Date range | — | *(to be filled after prefilter.py runs)* |
-| SE3 — Source type | — | *(to be filled after prefilter.py runs)* |
-| SE4 — Retraction | — | *(pending — Retraction Watch cross-reference not yet implemented)* |
-| **Records forwarded to Phase 1 screening** | **212** | — |
+| SE1 — Language | 1 | Lithuanian-language paper detected via `langdetect` on title+abstract (lowercased) |
+| SE2 — Date range | 0 | Date enforced at search time; post-hoc integrity check passed |
+| SE3 — Source type | 35 | Editorials (PubMed), letters (PubMed), meeting abstracts and editorial material (WoS); 1 record excluded by both SE1 and SE3 |
+| SE4 — Retraction | 0 | Cross-referenced against Retraction Watch (61,632 DOIs); no matches |
+| **Records forwarded to Phase 1 screening** | **176** | 212 unique − 36 excluded (union of SE1–SE4) |
 
 > For the human reviewer checklist (codes PO1, CO2, CO3, CX4, OT5), see [`screening/SCREENING_GUIDE.md`](screening/SCREENING_GUIDE.md).
 
@@ -192,7 +194,7 @@ Implemented in `metadata/preprocessing/prefilter.py` (pending). Exclusions are l
 
 | Metric | Count |
 |---|---|
-| Records entering Phase 1 | 212 |
+| Records entering Phase 1 | 176 |
 | Excluded at Stage 1 (both reviewers agree exclude) | — |
 | Disagreements forwarded to Stage 2 discussion | — |
 | Included after Stage 2 discussion | — |
@@ -227,7 +229,7 @@ Every AI-assisted step in this review is logged here per the PRISMA-trAIce commi
 
 | # | Stage | Task | Tool | Model / Version | Prompting strategy | Date(s) | Decision authority |
 |---|---|---|---|---|---|---|---|
-| 1 | Pipeline development | Metadata retrieval pipeline: PubMedFetcher, IEEEExportLoader, WoSExportLoader; deduplication; corpus assembly scripts (`run_fetch_metadata.py`, `run_build_corpus.py`) | Claude Code (Anthropic) | claude-sonnet-4-6 | Interactive pair-programming via CLI; user directed tasks, Claude generated and revised code, user approved all changes | 2026-06-18 | Human (pipeline author reviewed and approved all code) |
+| 1 | Pipeline development | Metadata retrieval pipeline: PubMedFetcher, IEEEExportLoader, WoSExportLoader; deduplication; corpus assembly (`run_metadata.py` with `--fetch-only` / `--corpus-only` flags; substeps in `metadata/fetch/` and `metadata/preprocessing/`) | Claude Code (Anthropic) | claude-sonnet-4-6 | Interactive pair-programming via CLI; user directed tasks, Claude generated and revised code, user approved all changes | 2026-06-18 | Human (pipeline author reviewed and approved all code) |
 | 2 | Stage 1 — Abstract screening | *(to be filled)* | | | | | |
 | 3 | Stage 2 — Full-text reading aid | *(to be filled)* | | | | | |
 | 4 | Synthesis | *(to be filled)* | | | | | |

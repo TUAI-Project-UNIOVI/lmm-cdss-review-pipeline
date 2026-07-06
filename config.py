@@ -94,6 +94,10 @@ CORPUS_XLSX       = "outputs/metadata/corpus.xlsx"
 CORPUS_PKL        = "outputs/metadata/corpus.pkl"
 FAILED_PMIDS_FILE = "outputs/metadata/failed_pmids.txt"
 
+# Stage 1b — pre-filter
+RETRACTION_WATCH_CSV = "data/retraction_watch.csv"
+PREFILTER_COLS = ["SE1_language", "SE2_date", "SE3_pub_type", "SE4_retracted"]
+
 # Stage 2 — screening
 SCREENING_CSV    = "outputs/screening_results.csv"
 SCREENING_XLSX   = "outputs/screening_results.xlsx"
@@ -130,4 +134,9 @@ CORPUS_COLUMNS = [
     "url",
     "bibtex",
     "pub_type",
+    # Stage 1b pre-filter flags (bool; False = passes / include)
+    "SE1_language",
+    "SE2_date",
+    "SE3_pub_type",
+    "SE4_retracted",
 ]

@@ -1,4 +1,5 @@
 metapub
+langdetect
 tqdm
 google-genai
 python-dotenv

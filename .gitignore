@@ -6,3 +6,5 @@ __pycache__
 .ipynb_checkpoints
 outputs/
 drafts/scratch.py
+drafts/screening_phase1_R3*
+data/retraction_watch.csv
