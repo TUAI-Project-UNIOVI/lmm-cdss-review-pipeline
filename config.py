@@ -105,6 +105,15 @@ SCREENING_PKL    = "outputs/screening_results.pkl"
 FULLPAPER_CSV    = "outputs/fullpaper_summaries.csv"
 FULLPAPER_XLSX   = "outputs/fullpaper_summaries.xlsx"
 
+# Phase 1 screening outputs (used by make_bibtex.py)
+PHASE1_APPEND_XLSX   = "screening/screening_phase1_append.xlsx"
+PHASE1_DECISIONS_CSV = "outputs/screening/phase1_decisions.csv"
+PHASE1_EXPECTED      = {"INCLUDE": 157, "EXCLUDE": 19, "TOTAL": 176}
+
+# Phase 2 — BibTeX generation (make_bibtex.py)
+NAMING_MAP_CSV       = "outputs/fulltext/naming_map.csv"
+INCLUDES_BIB         = "outputs/fulltext/includes.bib"
+
 # Stage 3 — charting
 CHARTING_CSV     = "outputs/charting_results.csv"
 CHARTING_XLSX    = "outputs/charting_results.xlsx"

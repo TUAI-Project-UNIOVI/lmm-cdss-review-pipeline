@@ -92,10 +92,13 @@ lmm-cdss-review-pipeline/
 │   │   └── wos.py                       WoSExportLoader (RIS via rispy)
 │   └── preprocessing/               ← Substep 2: concat, dedup, pre-filter
 │       ├── dedup.py                     deduplicate_corpus() — DOI exact + fuzzy title
-│       └── prefilter.py                 *(pending)* SE1–SE4 automatic exclusions
+│       └── prefilter.py                 SE1–SE4 automatic exclusions
 │
 ├── screening/                       ← Stage 2: human reviewer resources
-│   └── SCREENING_GUIDE.md               Gates 3–7 checklist for reviewers
+│   ├── SCREENING_GUIDE.md               Gates 3–7 checklist for reviewers
+│   ├── reviewer_guide.md / .html        Phase 1 reviewer instructions
+│   ├── screening_phase1_R1/R2.xlsx      Phase 1 reviewer worksheets (+ .csv)
+│   └── screening_phase1_append.xlsx     Phase 1 compiled results (R1 + R2 + discussion) — 157 IN / 19 EX
 │
 ├── charting/                        ← Stage 3
 │   ├── charting.py                      ChartingForm — three-dimension extraction
@@ -147,7 +150,7 @@ Gates are split into two tiers:
 
 | Tier | Codes | Applied by |
 |---|---|---|
-| Automatic pre-filter | SE1 (language), SE2 (date), SE3 (source type), SE4 (retraction) | `metadata/preprocessing/prefilter.py` *(pending)* |
+| Automatic pre-filter | SE1 (language), SE2 (date), SE3 (source type), SE4 (retraction) | `metadata/preprocessing/prefilter.py` |
 | Human screening | PO1 (population), CO2 (concept — LLM core), CO3 (concept — CDSS function), CX4 (context), OT5 (other) | Reviewers — see `screening/SCREENING_GUIDE.md` |
 
 Full execution details, exclusion counts, and deviations from protocol are recorded in `review_execution_log.md`.
