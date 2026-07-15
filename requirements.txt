@@ -5,7 +5,6 @@ google-genai
 python-dotenv
 pandas
 openpyxl
-joblib
 requests
 rispy
 rapidfuzz

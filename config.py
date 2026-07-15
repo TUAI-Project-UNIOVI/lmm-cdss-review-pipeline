@@ -90,8 +90,6 @@ WOS_RAW_CSV       = "outputs/metadata/wos_raw.csv"
 WOS_BIB_OUT       = "outputs/metadata/wos_clean.bib"
 WOS_EXPORT_RIS    = "data/wos/wos.ris"
 CORPUS_CSV        = "outputs/metadata/corpus.csv"
-CORPUS_XLSX       = "outputs/metadata/corpus.xlsx"
-CORPUS_PKL        = "outputs/metadata/corpus.pkl"
 FAILED_PMIDS_FILE = "outputs/metadata/failed_pmids.txt"
 
 # Stage 1b — pre-filter
@@ -109,6 +107,13 @@ FULLPAPER_XLSX   = "outputs/fullpaper_summaries.xlsx"
 PHASE1_APPEND_XLSX   = "screening/screening_phase1_append.xlsx"
 PHASE1_DECISIONS_CSV = "outputs/screening/phase1_decisions.csv"
 PHASE1_EXPECTED      = {"INCLUDE": 157, "EXCLUDE": 19, "TOTAL": 176}
+
+# Stage 2b — full-text retrieval (run_fulltext_retrieval.py)
+FULLTEXT_DIR         = "../papers_library/fulltext_retrieved"
+FULLTEXT_LOG_CSV     = "outputs/fulltext/retrieval_log.csv"
+FULLTEXT_MANUAL_XLSX = "outputs/fulltext/manual_worklist.xlsx"
+FULLTEXT_SLEEP       = 0.5   # seconds between polite HTTP requests
+FULLTEXT_TIMEOUT     = 30    # seconds per HTTP request
 
 # Phase 2 — BibTeX generation (make_bibtex.py)
 NAMING_MAP_CSV       = "outputs/fulltext/naming_map.csv"

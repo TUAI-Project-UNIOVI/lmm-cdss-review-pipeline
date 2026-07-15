@@ -197,7 +197,7 @@ Two reviewers (R1, R2) independently assessed all 176 records by title and abstr
 
 **Borderline flags.** 27 records were flagged as borderline by at least one reviewer (R1: 5, R2: 24). Flags are preserved in the workbook (`Final Borderline` column) so these records receive priority attention during full-text screening.
 
-**Grey areas.** Recurring CO3 boundary cases surfaced during screening — LLM-as-CDSS-builder, partial decisions in a decision cascade, monitoring/alert systems, LLM as pipeline component, LLM as knowledge-maintenance layer, papers that evaluate rather than constitute an LLM-CDSS, and the underlying definition of "clinical decision." These are registered as grey areas GA1–GA8 in `binnacle.md` § Full-Text Review Preparation; resolved rules will be codified into the Phase 2 (full-text) reviewer guide before Stage 4 starts.
+**Grey areas.** Recurring CO3 boundary cases surfaced during screening — LLM-as-CDSS-builder, partial decisions in a decision cascade, monitoring/alert systems, LLM as pipeline component, LLM as knowledge-maintenance layer, papers that evaluate rather than constitute an LLM-CDSS, and the underlying definition of "clinical decision." These were registered as grey areas GA1–GA8 (later GA1–GA9); current definitions, status, and history are in `screening/SCREENING_GUIDE.md § Key definitions` — the single source for GA content.
 
 ---
 
@@ -212,54 +212,21 @@ Two reviewers (R1, R2) independently assessed all 176 records by title and abstr
 | Phase | Method | Records Retrieved | Success Rate |
 |---|---|---|---|
 | Automated retrieval | IEEE API, PMC OA, Unpaywall (`run_fulltext_retrieval.py`) | 57/157 | 36.3% |
-| Manual retrieval | University account institutional access | 91/100 | 91.0% |
+| Manual retrieval | University account institutional access (camilo1260@gmail.com) | 91/157 | 58.0% |
 | **Total retrieved** | | **148/157** | **94.3%** |
 | **Not accessible** | Despite institutional credentials | **9/157** | **5.7%** |
 
 **Papers not accessible (Corpus IDs):** 122, 10, 27, 37, 62, 98, 125, 142, 144
 
-**Retrieval log:** [`outputs/fulltext_retrieval_log.md`](outputs/fulltext_retrieval_log.md) and [`fulltext_retrieval_log.md`](fulltext_retrieval_log.md) — documents exact access attempts and reasoning.
+**Retrieval log (authoritative source):** [`outputs/fulltext/stage4_retrieval_summary.csv`](outputs/fulltext/stage4_retrieval_summary.csv) — complete record of all 157 papers with corpus_id, standard_name, journal, year, source, retrieval_method (automatic/manual), status (retrieved/not_retrieved), and file_path. This CSV is the ground truth for Stage 4 retrieval execution.
+
+**Supplementary documentation:** [`outputs/fulltext/stage4_fulltext_retrieval_report.md`](outputs/fulltext/stage4_fulltext_retrieval_report.md) — extended report with PRISMA-ScR and PRISMA-trAIce reporting templates, suitable for Appendix C and AI-Use Log.
 
 **Exclusion rationale:** Per PRISMA 2020 and JBI methodology, papers excluded due to full-text inaccessibility are documented as a distinct exclusion category at the full-text screening stage. This is a recognized practical limitation in systematic and scoping reviews. Documented access attempts satisfy reporting standards.
 
 ### Full-Text Screening
 
-*To be completed after full-text review.*
-
-| Metric | Count |
-|---|---|
-| Records entering Full-Text Screening | 157 |
-| Full text not retrievable (access exclusion) | 9 |
-| Records available for screening | 148 |
-| Excluded at Step A (both reviewers agree exclude) | — |
-| Disagreements forwarded to Step B discussion | — |
-| Included after Step B discussion | — |
-| **Final included studies** | — |
-
-**Step A — Independent Screening.** Two reviewers independently read each full-text record; AI reading-aid tools permitted per PRISMA-trAIce, decision authority remains human.
-**Step B — Reviewer Discussion.** Records not resolved by agreement in Step A go to joint discussion; unresolved conflicts default to include.
-
----
-
-## Stage 5 — Backward Citation Snowballing
-
-*To be completed after Stage 4 produces the final included-studies corpus, before charting.*
-
-One level of backward snowballing (per `@ptx`/`@mtx` §2.5.3/§3.2.3) over the reference lists of the final included studies. Forward snowballing is not performed (rationale: 2024–2026 window, insufficient citation accumulation). This step is the safety net supporting the arXiv/grey-literature exclusion rationale (§2.4) — do not skip.
-
-**Planned streamlining:** fetch reference lists programmatically by DOI (OpenAlex / Semantic Scholar), auto-exclude pre-2024 records and records already in the corpus, then human-screen only the residual shortlist against PCC criteria (not a manual skim of every reference list).
-
-| Metric | Count |
-|---|---|
-| Reference lists processed | — |
-| Candidate records surfaced (post date/dedup filter) | — |
-| Included after screening | — |
-
----
-
-## Stage 6 — Charting and Synthesis
-
-*To be completed after data extraction.*
+**Status: not yet started.** Records entering Full-Text Screening: 157. Full text not retrievable (access exclusion): 9. Records available for screening: 148. Screening checklist, codes, and grey-area (GA) definitions are in `screening/SCREENING_GUIDE.md § Key definitions`.
 
 ---
 
@@ -273,6 +240,3 @@ Every AI-assisted step in this review is logged here per the PRISMA-trAIce commi
 | 2 | Stage 2 — Pre-filtering (Automatic codes SE1–SE4) | Generation of the automatic pre-filter code (`metadata/preprocessing/prefilter.py`, codes SE1–SE4) and its integration into `run_metadata.py --corpus-only`; the approved code was then executed to apply the pre-filter to the deduplicated corpus | Claude Code (Anthropic) | claude-sonnet-4-6 | Interactive pair-programming via CLI; Claude generated the code, user reviewed and approved all changes before execution | 2026-06-25 | Human (all code human-approved before execution; the executed pre-filter results were confirmed and revised by the pipeline author to verify the quality of the executed code; no AI judgment on individual records) |
 | 3 | Stage 3 — Title/Abstract Screening | None — screening performed entirely by two human reviewers: independent assessment (Step A) and discussion-based conflict resolution (Step B); no AI-assisted steps at this stage | — | — | — | completed 2026-07-13 | Human (both reviewers) |
 | 4 | Stage 4 — Full-Text Retrieval | Generation of the full-text retrieval script (`run_fulltext_retrieval.py`): parses Phase 1 final decisions from `screening_phase1_append.xlsx`, resolves PMCIDs via the NCBI ID Converter, downloads open-access PDFs (PMC OA subset packages, Unpaywall), and produces `outputs/fulltext/retrieval_log.csv` plus a manual worklist; the approved code was then executed, retrieving 57 of 157 full texts automatically (remaining 100 retrieved manually by the reviewer via university institutional access) | Claude Code (Anthropic) | claude-fable-5 | Interactive pair-programming via CLI; implementation plan approved by user before coding; user decided storage layout and XML handling; Claude generated the code, user approved all changes before execution | 2026-07-13 to 2026-07-14 | Human (all code human-approved before execution; retrieval is deterministic — no AI judgment on any record's content or eligibility; manual retrieval decisions made by reviewer with institutional access) |
-| 5 | Stage 4 — Full-Text Screening | *(to be filled)* | | | | | |
-| 6 | Stage 5 — Backward Citation Snowballing | *(to be filled)* | | | | | |
-| 7 | Stage 6 — Charting and Synthesis | *(to be filled)* | | | | | |

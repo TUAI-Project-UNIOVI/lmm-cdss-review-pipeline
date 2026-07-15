@@ -2,7 +2,7 @@
 
 Orchestrates two substeps:
   1. Fetch  — pull raw metadata from each database → outputs/metadata/*_raw.csv
-  2. Corpus — merge raws, deduplicate, normalise   → outputs/metadata/corpus.*
+  2. Corpus — merge raws, deduplicate, normalise   → outputs/metadata/corpus.csv
 
 Substep modules live in metadata/fetch/ and metadata/corpus/.
 
@@ -25,7 +25,6 @@ import os
 import sys
 from pathlib import Path
 
-import joblib
 import pandas as pd
 from openpyxl.styles import Alignment, PatternFill, Font
 
@@ -152,15 +151,13 @@ def run_corpus() -> None:
     corpus = corpus[config.CORPUS_COLUMNS]
 
     corpus.to_csv(config.CORPUS_CSV, index=False)
-    corpus.to_excel(config.CORPUS_XLSX, index=False)
-    joblib.dump(corpus, config.CORPUS_PKL)
 
     n_unique = (~corpus["is_duplicate"]).sum()
     logger.info(
         "Corpus: %d total rows, %d duplicates, %d unique records.",
         len(corpus), len(corpus) - n_unique, n_unique,
     )
-    logger.info("Saved → %s | %s | %s", config.CORPUS_CSV, config.CORPUS_XLSX, config.CORPUS_PKL)
+    logger.info("Saved → %s", config.CORPUS_CSV)
 
     dup_map = build_duplicate_map(corpus)
     dup_map_path = Path(config.CORPUS_CSV).parent / "duplicate_map.csv"
@@ -171,7 +168,7 @@ def run_corpus() -> None:
 
 
 def _write_screening_files(corpus: pd.DataFrame) -> None:
-    """Write per-reviewer screening files (CSV + XLSX) to outputs/screening/."""
+    """Write per-reviewer screening files (XLSX) to outputs/screening/."""
     ensure_output_dir("outputs/screening")
 
     se_cols = [c for c in config.PREFILTER_COLS if c in corpus.columns]
@@ -197,11 +194,7 @@ def _write_screening_files(corpus: pd.DataFrame) -> None:
     header_fill = PatternFill("solid", fgColor="D9E1F2")
 
     for reviewer in ["R1", "R2"]:
-        csv_path  = Path(f"screening/screening_phase1_{reviewer}.csv")
         xlsx_path = Path(f"screening/screening_phase1_{reviewer}.xlsx")
-
-
-        unique.to_csv(csv_path, index=False)
 
         with pd.ExcelWriter(xlsx_path, engine="openpyxl") as writer:
             unique.to_excel(writer, index=False, sheet_name="Phase1")
@@ -216,7 +209,7 @@ def _write_screening_files(corpus: pd.DataFrame) -> None:
                 for cell in row:
                     cell.alignment = Alignment(wrap_text=True, vertical="top")
 
-        logger.info("Screening files written → %s | %s", csv_path, xlsx_path)
+        logger.info("Screening file written → %s", xlsx_path)
 
     logger.info("Screening files: %d unique records, 2 reviewers.", len(unique))
 
