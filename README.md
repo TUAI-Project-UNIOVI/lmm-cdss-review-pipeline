@@ -110,11 +110,11 @@ lmm-cdss-review-pipeline/
 │
 ├── screening/                       ← Phase 1 + Phase 2: human reviewer resources
 │   ├── SCREENING_GUIDE.md               Canonical reference for both phases (PO1, CO2, CO3, CX4, OT5 + Phase 2 GA1/GA5/GA7)
-│   ├── reviewer_guide.md                Phase 1 reviewer instructions
+│   ├── reviewer_guide_phase1.md          Phase 1 reviewer instructions
 │   ├── screening_phase1_R1/R2.xlsx      Phase 1 reviewer worksheets
 │   ├── screening_phase1_append.xlsx     Phase 1 compiled results (R1 + R2 + discussion) — 157 IN / 19 EX
-│   ├── screening_phase2_R1/R2.xlsx      Phase 2 reviewer worksheets (full-text)
-│   └── screening_phase2_append.xlsx     Phase 2 compiled results (R1 + R2 + discussion)
+│   ├── reviewer_guide_phase2.md          Phase 2 reviewer instructions — what changes from Phase 1
+│   └── screening_phase2_R1/R2.xlsx      Phase 2 reviewer worksheets (full-text)
 │
 ├── run_metadata.py                  ← Stage 1 orchestrator (--fetch-only / --corpus-only / both)
 ├── run_fulltext_retrieval.py        ← Full-text retrieval for Phase 1 includes (PMC OA, Unpaywall, manual worklist)

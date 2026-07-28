@@ -1,4 +1,4 @@
-# Reviewer Guide — Phase 1 Screening
+# Reviewer Guide — Phase 1 Screening (Title/Abstract)
 
 You will receive a spreadsheet with one row per paper. For each paper, read the title and abstract, then fill the check columns and the decision column.
 
