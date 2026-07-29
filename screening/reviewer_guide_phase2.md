@@ -17,18 +17,20 @@ You will receive a spreadsheet with one row per paper. For each paper, examine t
 |---|---|---|
 | `PO1_population_clinician` | PO1 | System is NOT used by licensed clinicians (physicians, nurses, residents). Exclude if patient-facing, for students, or admin-only. |
 | `CO2_concept_llm_presence` | CO2 | Study does NOT use an LLM or LMM in any role (core or orchestrator). Exclude if the system is traditional ML, rule-based, or BERT-only with no generative model. |
-| `CO3_concept_cdss_function` | CO3 | System does NOT produce patient-specific clinical recommendations. See § CO3 in full text — clarifying grey areas below for boundary cases. |
+| `CO3_concept_cdss_function` | CO3 | System does NOT produce patient-specific clinical recommendations. See § Clarifying grey areas → CO3 below for boundary cases. |
 | `CX4_context_clinical_data` | CX4 | Study uses NO clinical data of any kind — no patient records, clinical notes, medical imaging, synthetic clinical data, or medical benchmarks. |
-| `OT5_other` | OT5 | Any other exclusion reason not covered above — e.g., an opinion/commentary/editorial piece that passed earlier filters because its metadata (source type, keywords) was incorrect or misleading, or any other issue you can't map to PO1–CX4. Describe the specific reason in `rationale`. There is no scripted reading-aid question for OT5 — it is a catch-all for cases the other checks don't cover, so judge it directly from the text. |
+| `OT5_other` | OT5 | Any other exclusion reason not covered above — e.g., an opinion/commentary/editorial piece, or a journalistic research briefing summarizing one primary study, with no systematic analysis of a body of qualifying research; or any other issue you can't map to PO1–CX4. If the paper itself is a review, see § Clarifying grey areas → Review papers below before using this code. Describe the specific reason in `rationale`. There is no scripted reading-aid question for OT5 — it is a catch-all for cases the other checks don't cover, so judge it directly from the text. |
 | `decision` | — | `INCLUDE` or `EXCLUDE`. You must choose one — Phase 2 is definitive. |
 | `rationale` | — | Brief explanation of the decision. Required for exclusions and doubts. |
 | `borderline_flag` | — | `Yes` if the decision felt close, even if you reached one. Prioritizes the record for joint reviewer discussion. |
 
 ---
 
-## CO3 in full text — clarifying grey areas
+## Clarifying grey areas
 
-During abstract-level screening, several boundary cases came up where it was unclear whether a system counted as a patient-specific clinical decision. This section works through those cases with a definition and a few illustrative examples. The examples are not exhaustive — use the definition as the test, and mark `borderline_flag = Yes` for any case that doesn't clearly fit.
+Several boundary cases came up during abstract-level screening where it was unclear how a check applied. This section works through them with a clarifications and illustrative examples in some cases. The examples are not exhaustive. Mark `borderline_flag = Yes` for any case that doesn't clearly fit.
+
+### CO3 — what counts as a patient-specific clinical decision
 
 **What counts as a clinical decision** — any patient-specific content (real or simulated patient) the LLM itself generates that constitutes, contributes to, or grounds a step in the decision cascade (diagnosis, differential, risk/prognosis, treatment, triage, test/order selection, discharge, or rationale for any of these). Judge against this definition, not the paper's own framing. It need not be the full, final, or acted-upon decision, and need not be prospective — justifying a decision already made counts too.
 
@@ -44,6 +46,10 @@ For example:
 - If the LLM is used to select, design, or build the decision-making system itself (e.g., picks which model to deploy), that **excludes** — this is building the tool, not using it.
 - If the LLM only maintains a rule-based CDSS's knowledge base off-line (e.g., updating its guideline corpus), that **excludes** too, regardless of any downstream effect on future recommendations.
 - Where the LLM sits in the workflow (first opinion, second opinion, or independent-then-reconcile) does not change this test on its own — note it in `rationale` for context, but it isn't itself grounds for inclusion or exclusion.
+
+### Review papers — how paper type changes the checklist
+
+Review papers (narrative, systematic, scoping) are included when their subject matter is LLM-CDSS — apply PO1–CX4 to what the review analyzes, not to whether it presents an original system of its own. If the subject matter is out of scope, exclude on whichever code it triggers.
 
 ---
 

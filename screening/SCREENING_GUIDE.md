@@ -21,6 +21,36 @@ Codes follow the PCC framework from the protocol (§2.4), plus SE for Sources & 
 
 ---
 
+## Definition: What counts as an LLM or LMM for inclusion purposes
+
+**Large Language Model (LLM)** = a **generative model** trained on language data that can produce novel text output. Must have an autoregressive or encoder-decoder architecture with a language-generation objective.
+
+**Large Multimodal Model (LMM)** = a generative model combining language with other modalities (image, audio, structured data) that can generate language output grounded in multimodal input.
+
+### What COUNTS as an LLM/LMM (INCLUDE on CO2 check):
+- GPT-3.5, GPT-4, Claude (Anthropic), Gemini (Google), Llama, Mistral, other autoregressive transformers
+- Fine-tuned versions of the above (e.g., GPT-4 fine-tuned for a clinical task)
+- Encoder-decoder models with generation capability (e.g., T5, BART)
+- Multimodal models: GPT-4V, Gemini-Pro Vision, LLaVA, other image+text models
+- Open-source generative models: Falcon, Qwen, Phi, etc.
+- Specialized clinical LLMs: MedPaLM, ClinicalGPT, etc.
+
+### What does NOT count as an LLM (EXCLUDE on CO2 check):
+- **BERT, RoBERTa, DistilBERT, and other encoder-only models** — masked-language classifiers, not generative
+- **CNN, Random Forest, XGBoost, SVM, KNN** — traditional ML
+- **Rule-based systems, decision trees, CDSS templates** — no neural component
+- **Embedding-only systems** — pre-computed embeddings used as features to a classifier
+- **Fine-tuned encoders** — BERT fine-tuned for classification is a classifier, not generative
+
+### Terminology trap — read the methods carefully:
+Papers may claim "LLM-based" in the title but describe only BERT or other classifiers in methods. **Always verify the architecture in the methods/model section.** Look for:
+- Autoregressive or causal language modeling → **generative** → INCLUDE
+- Masked-language modeling (MLM) + classification head → **encoder classifier** → EXCLUDE
+- "Fine-tuned BERT" → encoder classifier → EXCLUDE
+- "Embeddings from GPT-2 fed to a classifier" → encoder features → EXCLUDE
+
+---
+
 ## Decision logic
 
 Apply reviewer codes **in order** (PO1 → CO2 → CO3 → CX4). A single confirmed exclusion is sufficient — stop and record the code. All checks must pass to include.
@@ -71,6 +101,8 @@ Examples that trigger exclusion: administrative automation only (scribing, billi
 ## OT5 — Other
 **Exclude (Yes) if:** Exclusion reason not covered by PO1–CX4. Detail the reason in `rationale`.
 
+**Review papers (narrative, systematic, or scoping) are NOT excluded on OT5 for lack of an original system.** A review's lack of originality is not itself grounds for OT5 exclusion — a review that systematically analyzes primary studies is still evidence of the field. Apply PO1–CX4 to the review's *subject matter*: if the systems/studies it analyzes would themselves pass PO1–CX4 (clinician-facing, LLM/LMM present, patient-specific CDSS output, clinical data), the review is INCLUDE. If its subject matter is out of scope (e.g., reviews board-exam benchmarks only, or covers non-clinician-facing tools), it EXCLUDEs on the code that subject matter would trigger (e.g., CO3, PO1) — not OT5. OT5 remains reserved for opinion/commentary/editorial pieces with no systematic analysis of any qualifying research.
+
 ---
 
 ## Decision summary
@@ -118,7 +150,7 @@ Check columns: `Yes` = exclusion criterion met, `No` = paper passes this check.
 | `CO2_concept_llm_presence` | CO2 | Does NOT use an LLM/LMM in any role — neither as core component nor as orchestrator; relies solely on traditional ML, rule-based logic, or legacy transformers (e.g. BERT) |
 | `CO3_concept_cdss_function` | CO3 | No patient-specific clinical decision output — e.g. admin automation only (scribing, billing), general medical education without patient context |
 | `CX4_context_clinical_data` | CX4 | Study uses no clinical data of any kind — neither real patient data, clinical notes, medical imaging, synthetic clinical data, nor recognised medical benchmarks |
-| `OT5_other` | OT5 | Exclusion reason not covered by PO1–CX4; detail in `rationale` |
+| `OT5_other` | OT5 | Exclusion reason not covered by PO1–CX4; detail in `rationale`. Reviews are NOT excluded here for lacking an original system — screen their subject matter against PO1–CX4 instead (see § OT5 above) |
 
 ### Decision and rationale columns *(reviewer fills)*
 
